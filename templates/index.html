@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lilbug Rover Control</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0c1220;
+      --panel: #111a2e;
+      --accent: #7dd3fc;
+      --accent-strong: #38bdf8;
+      --text: #e5eefb;
+      --muted: #8ca2c0;
+      --danger: #fb7185;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 35%),
+        linear-gradient(180deg, #08101c 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    main {
+      width: min(1100px, calc(100vw - 2rem));
+      margin: 0 auto;
+      padding: 1.5rem 0 2rem;
+    }
+
+    h1 {
+      margin: 0 0 0.25rem;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+    }
+
+    p {
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .layout {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: 1.3fr 0.9fr;
+      margin-top: 1.5rem;
+    }
+
+    .card {
+      background: rgba(17, 26, 46, 0.9);
+      border: 1px solid rgba(125, 211, 252, 0.12);
+      border-radius: 20px;
+      padding: 1rem;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
+    }
+
+    .camera {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      display: block;
+      border-radius: 14px;
+      background: #030712;
+    }
+
+    .status {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+      margin-top: 0.75rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .status strong {
+      color: var(--accent);
+      text-transform: capitalize;
+    }
+
+    .grid {
+      display: grid;
+      gap: 0.75rem;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-areas:
+        ". forward ."
+        "left stop right"
+        ". reverse .";
+      margin-top: 1rem;
+    }
+
+    button {
+      min-height: 84px;
+      border: 0;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.18), rgba(56, 189, 248, 0.08));
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, background 120ms ease;
+    }
+
+    button:hover, button:focus-visible {
+      transform: translateY(-1px);
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.26), rgba(56, 189, 248, 0.12));
+      outline: none;
+    }
+
+    button.active {
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.42), rgba(56, 189, 248, 0.18));
+      box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.2) inset;
+    }
+
+    #forward { grid-area: forward; }
+    #left { grid-area: left; }
+    #stop { grid-area: stop; background: linear-gradient(180deg, rgba(251, 113, 133, 0.35), rgba(251, 113, 133, 0.15)); }
+    #right { grid-area: right; }
+    #reverse { grid-area: reverse; }
+
+    .hint {
+      margin-top: 0.75rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; }
+      button { min-height: 72px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Lilbug Rover Control</h1>
+      <p>Press and hold a direction button, then release to stop. Arrow keys and spacebar also work.</p>
+    </header>
+
+    <section class="layout">
+      <div class="card">
+        <img class="camera" src="/stream.mjpg" alt="Live rover camera stream">
+        <div class="status">
+          <span>Current motion: <strong id="current-action">stop</strong></span>
+          <span id="connection-status">Connecting...</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="grid">
+          <button id="forward" data-action="forward">Forward</button>
+          <button id="left" data-action="left">Left</button>
+          <button id="stop" data-action="stop">Stop</button>
+          <button id="right" data-action="right">Right</button>
+          <button id="reverse" data-action="reverse">Reverse</button>
+        </div>
+        <p class="hint">Keyboard: Up, Left, Right, Down, Space</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const actionLabel = document.getElementById("current-action");
+    const connectionLabel = document.getElementById("connection-status");
+    const buttons = [...document.querySelectorAll("button[data-action]")];
+    let activeAction = "stop";
+
+    function setActiveAction(action) {
+      activeAction = action;
+      actionLabel.textContent = action;
+      buttons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.action === action);
+      });
+    }
+
+    async function sendAction(action) {
+      const path = action === "stop" ? "/api/stop" : `/api/move/${action}`;
+      const response = await fetch(path, { method: "POST" });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || `Request failed: ${response.status}`);
+      }
+
+      setActiveAction(payload.action);
+      connectionLabel.textContent = "Connected";
+    }
+
+    function bindHold(button) {
+      const action = button.dataset.action;
+
+      if (action === "stop") {
+        button.addEventListener("click", () => sendAction("stop").catch(showError));
+        return;
+      }
+
+      const start = (event) => {
+        event.preventDefault();
+        sendAction(action).catch(showError);
+      };
+
+      const stop = (event) => {
+        event.preventDefault();
+        if (activeAction === action) {
+          sendAction("stop").catch(showError);
+        }
+      };
+
+      button.addEventListener("mousedown", start);
+      button.addEventListener("mouseup", stop);
+      button.addEventListener("mouseleave", stop);
+      button.addEventListener("touchstart", start, { passive: false });
+      button.addEventListener("touchend", stop, { passive: false });
+      button.addEventListener("touchcancel", stop, { passive: false });
+    }
+
+    function showError(error) {
+      connectionLabel.textContent = error.message;
+    }
+
+    const keyboardMap = {
+      ArrowUp: "forward",
+      ArrowLeft: "left",
+      ArrowRight: "right",
+      ArrowDown: "reverse",
+      " ": "stop",
+    };
+
+    let heldKeyAction = null;
+
+    window.addEventListener("keydown", (event) => {
+      const action = keyboardMap[event.key];
+      if (!action || event.repeat) {
+        return;
+      }
+
+      event.preventDefault();
+      heldKeyAction = action === "stop" ? null : action;
+      sendAction(action).catch(showError);
+    });
+
+    window.addEventListener("keyup", (event) => {
+      const action = keyboardMap[event.key];
+      if (!action) {
+        return;
+      }
+
+      event.preventDefault();
+      if (heldKeyAction === action || action === "stop") {
+        heldKeyAction = null;
+        sendAction("stop").catch(showError);
+      }
+    });
+
+    window.addEventListener("blur", () => {
+      heldKeyAction = null;
+      sendAction("stop").catch(() => {});
+    });
+
+    buttons.forEach(bindHold);
+
+    fetch("/api/status")
+      .then((response) => response.json())
+      .then((payload) => {
+        setActiveAction(payload.action);
+        connectionLabel.textContent = payload.gpio_mode === "rpi" ? "Connected to Pi GPIO" : "Connected in fake GPIO mode";
+      })
+      .catch(showError);
+  </script>
+</body>
+</html>
