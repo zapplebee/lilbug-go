@@ -2,6 +2,8 @@
 
 Flask-based web control app for a Raspberry Pi 3B+ that drives a Snap Circuits Rover through a relay board and exposes a live USB camera stream in the browser.
 
+![Lilbug rover](lilbuggo.png)
+
 ## Features
 - browser controls for `forward`, `reverse`, `left`, `right`, and `stop`
 - MJPEG camera stream at `/stream.mjpg`
@@ -107,6 +109,40 @@ journalctl -u lilbug-rover.service -f
 - `POST /api/stop`: stop motion
 - `GET /stream.mjpg`: live MJPEG stream
 - `GET /snapshot.jpg`: single JPEG frame
+
+## Tag Navigation
+
+- `DRIVING_FOR_AGENTS.md` contains the room-specific findings from live driving
+  experiments, including the confirmed `tag25h9` landmarks found so far and
+  working pulse sizes.
+- `scripts/loop_between_tags.py` runs a closed-loop AprilTag lap between the two
+  known bins in the current room.
+- `scripts/find_april_tag.py` is the next-step exploration tool: it uses
+  AprilTag detection, a lightweight SQLite landmark KB, and optional local depth
+  estimation for obstacle-aware searching.
+
+Optional local-only depth tooling:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements-vision.txt
+```
+
+Example:
+
+```bash
+source .venv/bin/activate
+python scripts/loop_between_tags.py --once
+python scripts/find_april_tag.py --target-tag 3 --use-depth
+```
+
+Current confirmed landmarks:
+
+- tag `0`: blue bin near fridge / doorway
+- tag `1`: black bin under TV stand by fireplace
+- tag `3`: low on refrigerator front
+- tag `4`: low on tall cabinet by beaded-curtain doorway
+- tag `5`: sofa base beneath window blinds
 
 ## Safety notes
 - rover power remains separate from Pi power
