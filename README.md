@@ -4,6 +4,20 @@ Flask-based web control app for a Raspberry Pi 3B+ that drives a Snap Circuits R
 
 ![Lilbug rover](lilbuggo.png)
 
+## Start Here
+
+If you are returning to this project after a long time, start with the docs in
+this order:
+
+1. `docs/OVERVIEW.md`
+2. `docs/PARTS.md`
+3. `docs/HARDWARE.md`
+4. `docs/SOFTWARE.md`
+5. `docs/NETWORKING.md`
+6. `docs/OPERATIONS.md`
+7. `docs/DECISIONS.md`
+8. `docs/INDEX.md` for the full hierarchy
+
 ## Features
 - browser controls for `forward`, `reverse`, `left`, `right`, and `stop`
 - keyboard and gamepad support for direct directional driving
@@ -15,10 +29,12 @@ Flask-based web control app for a Raspberry Pi 3B+ that drives a Snap Circuits R
 - systemd service file for deployment on the Pi
 
 ## Repo layout
-- `docs/` wiring and hardware notes
-- `src/` application source
+- `docs/` durable project documentation and reference material
+- `src/` Pi runtime application source
 - `templates/` HTML template and client-side controls
-- `deploy/` systemd unit file
+- `scripts/` host-side exploration and autonomy tooling
+- `deploy/` service files and network deployment helpers
+- `data/` host-side landmark database
 
 ## Hardware summary
 

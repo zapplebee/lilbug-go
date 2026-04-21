@@ -20,6 +20,12 @@ Preferred field URL:
 http://192.168.4.1:8000
 ```
 
+Implementation note:
+
+- the final working AP uses NetworkManager shared mode on `wlan0`
+- `hostapd`/`dnsmasq` were tested during development but are not the active
+  runtime path in the final stable configuration
+
 ## Upstream Network
 
 `wlan1` connects to the home network and receives a DHCP address there. That
@@ -40,6 +46,9 @@ Safety protections were installed before changing interface roles:
 - `/usr/local/bin/network-rollback.sh`
 - `/usr/local/bin/network-failsafe.sh`
 - `network-failsafe.service`
+
+Additional deployment helper files remain in `deploy/` as historical artifacts of
+the bring-up and rollback work.
 
 Backups were also created under `/var/backups/lilbug-network/`.
 

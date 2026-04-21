@@ -1,6 +1,17 @@
-# Agent brief
+# Agent Brief
 
-Build a Raspberry Pi 3B+ web control app for a Snap Circuits Rover using an 8-channel relay board and a USB camera.
+This file is the original build brief for the project. It is kept for historical
+context, but it is no longer the best source of truth for the current system.
+
+For the current project state, start with:
+
+- `README.md`
+- `docs/INDEX.md`
+- `docs/OVERVIEW.md`
+- `docs/HARDWARE.md`
+- `docs/SOFTWARE.md`
+
+Build a Raspberry Pi 3B+ web control app for a Snap Circuits Rover using a relay board and a USB camera.
 
 ## Deliverable
 A small deployable project that:
@@ -10,7 +21,7 @@ A small deployable project that:
 - cleans up safely on shutdown
 - can run as a service on the Pi
 
-## Hardware mapping
+## Historical Hardware Mapping
 
 ### Pi -> relay
 Use BCM numbering in code.
@@ -66,3 +77,9 @@ Action states in the deployed app:
 - return to stop on shutdown and exceptions
 - serialize movement changes so commands do not conflict
 - do not change the wiring assumptions above without documenting why
+
+## Current Note
+
+The deployed project currently uses a 4-channel relay mapping in code and wiring
+documentation. The earlier 8-channel mention in older planning notes did not
+become the deployed design.
