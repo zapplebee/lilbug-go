@@ -1,0 +1,11 @@
+[Unit]
+Description=Lilbug network failsafe rollback
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/network-failsafe.sh
+
+[Install]
+WantedBy=multi-user.target

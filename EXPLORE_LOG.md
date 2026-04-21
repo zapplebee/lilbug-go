@@ -57,3 +57,22 @@
 - tag `6`
 - tag `7`
 - tag `8`
+
+## 2026-04-20
+
+### Networking update
+
+- Lilbug now uses a dual-radio setup:
+  - `wlan0` hosts the rover AP `lilbug-rover`
+  - `wlan1` carries upstream/home-network access
+- The stable field control URL is `http://192.168.4.1:8000`
+- Using `lilbug:8000` in the field proved unreliable once the rover left the
+  upstream network's effective range.
+
+### Networking implementation notes
+
+- The first replacement USB adapter (`MT7601U`) worked as a client but failed as
+  an AP host in practice.
+- The final working design keeps the onboard radio as the AP and the USB radio as
+  the upstream client.
+- Recovery safeguards were installed before the interface-role swap.

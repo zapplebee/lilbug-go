@@ -6,8 +6,10 @@ Flask-based web control app for a Raspberry Pi 3B+ that drives a Snap Circuits R
 
 ## Features
 - browser controls for `forward`, `reverse`, `left`, `right`, and `stop`
+- keyboard and gamepad support for direct directional driving
 - MJPEG camera stream at `/stream.mjpg`
 - single-frame camera snapshot at `/snapshot.jpg`
+- fullscreen camera button in the browser UI
 - safe startup in `stop`
 - safe shutdown and GPIO cleanup on exit
 - systemd service file for deployment on the Pi
@@ -94,6 +96,25 @@ sudo systemctl status lilbug-rover.service
 journalctl -u lilbug-rover.service -f
 ```
 
+## Networking
+
+Lilbug now runs as a dual-radio node:
+
+- `wlan0`: hosts the rover AP `lilbug-rover`
+- `wlan1`: connects upstream to the home network
+- `eth0`: left untouched as a recovery path
+
+Primary field URL when connected to the rover AP:
+
+```text
+http://192.168.4.1:8000
+```
+
+The upstream/home-network IP is separate and may change via DHCP. Do not rely on
+the upstream-side hostname or address for field driving.
+
+See `docs/NETWORKING.md` for the deployment notes and recovery model.
+
 ## Environment variables
 - `LILBUG_HOST`: bind host, default `0.0.0.0`
 - `LILBUG_PORT`: bind port, default `8000`
@@ -109,6 +130,19 @@ journalctl -u lilbug-rover.service -f
 - `POST /api/stop`: stop motion
 - `GET /stream.mjpg`: live MJPEG stream
 - `GET /snapshot.jpg`: single JPEG frame
+
+## Controls
+
+The current browser UI uses direct direction input:
+
+- press and hold `forward`, `reverse`, `left`, or `right`
+- release to stop
+- `Stop` button or spacebar sends `stop`
+- keyboard: arrow keys map directly to the four actions
+- gamepad: d-pad or left stick maps directly to the four actions
+
+This is intentionally simple and stable. More advanced control mixing was tested
+and then reverted.
 
 ## Tag Navigation
 
@@ -143,6 +177,8 @@ Current confirmed landmarks:
 - tag `3`: low on refrigerator front
 - tag `4`: low on tall cabinet by beaded-curtain doorway
 - tag `5`: sofa base beneath window blinds
+
+Tags `6` through `8` have not been located yet.
 
 ## Safety notes
 - rover power remains separate from Pi power

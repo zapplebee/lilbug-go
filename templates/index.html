@@ -67,6 +67,33 @@
       background: #030712;
     }
 
+    .camera-frame {
+      border-radius: 14px;
+      overflow: hidden;
+      background: #030712;
+    }
+
+    .camera-frame:fullscreen,
+    .camera-frame:-webkit-full-screen {
+      display: grid;
+      place-items: center;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      border-radius: 0;
+    }
+
+    .camera-frame:fullscreen .camera,
+    .camera-frame:-webkit-full-screen .camera {
+      width: 100vw;
+      height: 100vh;
+      max-width: 100vw;
+      max-height: 100vh;
+      aspect-ratio: auto;
+      object-fit: contain;
+      border-radius: 0;
+    }
+
     .status {
       display: flex;
       justify-content: space-between;
@@ -75,6 +102,12 @@
       margin-top: 0.75rem;
       color: var(--muted);
       font-size: 0.95rem;
+    }
+
+    .camera-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 0.75rem;
     }
 
     .status strong {
@@ -138,12 +171,17 @@
   <main>
     <header>
       <h1>Lilbug Rover Control</h1>
-      <p>Press and hold a direction button, then release to stop. Arrow keys and spacebar also work.</p>
+      <p>Press and hold a direction, then release to stop. Keyboard, d-pad, and left stick all work.</p>
     </header>
 
     <section class="layout">
       <div class="card">
-        <img class="camera" src="/stream.mjpg" alt="Live rover camera stream">
+        <div class="camera-toolbar">
+          <button id="fullscreen" type="button">Fullscreen</button>
+        </div>
+        <div class="camera-frame" id="camera-frame">
+          <img class="camera" src="/stream.mjpg" alt="Live rover camera stream">
+        </div>
         <div class="status">
           <span>Current motion: <strong id="current-action">stop</strong></span>
           <span id="connection-status">Connecting...</span>
@@ -158,7 +196,7 @@
           <button id="right" data-action="right">Right</button>
           <button id="reverse" data-action="reverse">Reverse</button>
         </div>
-        <p class="hint">Keyboard: Up, Left, Right, Down, Space</p>
+        <p class="hint">Keyboard: Up, Left, Right, Down, Space. Gamepad: d-pad or left stick for direct direction input.</p>
       </div>
     </section>
   </main>
@@ -167,11 +205,18 @@
     const actionLabel = document.getElementById("current-action");
     const connectionLabel = document.getElementById("connection-status");
     const buttons = [...document.querySelectorAll("button[data-action]")];
+    const cameraFrame = document.getElementById("camera-frame");
+    const camera = document.querySelector(".camera");
     let activeAction = "stop";
+    let lastSentAction = "stop";
+    let activeGamepadIndex = null;
 
     function setActiveAction(action) {
       activeAction = action;
       actionLabel.textContent = action;
+    }
+
+    function updateActiveButtons(action) {
       buttons.forEach((button) => {
         button.classList.toggle("active", button.dataset.action === action);
       });
@@ -186,26 +231,38 @@
       }
 
       setActiveAction(payload.action);
+      lastSentAction = payload.action;
+      updateActiveButtons(payload.action);
       connectionLabel.textContent = "Connected";
+    }
+
+    function syncAction(action) {
+      if (action === lastSentAction) {
+        return;
+      }
+      sendAction(action).catch(showError);
     }
 
     function bindHold(button) {
       const action = button.dataset.action;
 
       if (action === "stop") {
-        button.addEventListener("click", () => sendAction("stop").catch(showError));
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+          syncAction("stop");
+        });
         return;
       }
 
       const start = (event) => {
         event.preventDefault();
-        sendAction(action).catch(showError);
+        syncAction(action);
       };
 
       const stop = (event) => {
         event.preventDefault();
         if (activeAction === action) {
-          sendAction("stop").catch(showError);
+          syncAction("stop");
         }
       };
 
@@ -221,43 +278,139 @@
       connectionLabel.textContent = error.message;
     }
 
+    function gamepadToAction(gamepad) {
+      const axisX = gamepad.axes[0] || 0;
+      const axisY = gamepad.axes[1] || 0;
+      const threshold = 0.35;
+      const dpadUp = gamepad.buttons[12]?.pressed === true;
+      const dpadDown = gamepad.buttons[13]?.pressed === true;
+      const dpadLeft = gamepad.buttons[14]?.pressed === true;
+      const dpadRight = gamepad.buttons[15]?.pressed === true;
+
+      if (dpadUp || axisY < -threshold) {
+        return "forward";
+      }
+      if (dpadDown || axisY > threshold) {
+        return "reverse";
+      }
+      if (dpadLeft || axisX < -threshold) {
+        return "left";
+      }
+      if (dpadRight || axisX > threshold) {
+        return "right";
+      }
+      return "stop";
+    }
+
+    function pollGamepad() {
+      const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+      let pad = null;
+
+      if (activeGamepadIndex !== null && pads[activeGamepadIndex]) {
+        pad = pads[activeGamepadIndex];
+      } else {
+        pad = [...pads].find(Boolean) || null;
+        activeGamepadIndex = pad ? pad.index : null;
+      }
+
+      if (pad) {
+        connectionLabel.textContent = `${pad.id} connected`;
+        syncAction(gamepadToAction(pad));
+      } else if (activeGamepadIndex !== null) {
+        activeGamepadIndex = null;
+        syncAction("stop");
+      }
+
+      window.requestAnimationFrame(pollGamepad);
+    }
+
     const keyboardMap = {
       ArrowUp: "forward",
       ArrowLeft: "left",
       ArrowRight: "right",
       ArrowDown: "reverse",
-      " ": "stop",
     };
 
-    let heldKeyAction = null;
-
     window.addEventListener("keydown", (event) => {
-      const action = keyboardMap[event.key];
-      if (!action || event.repeat) {
+      if (event.key === " ") {
+        event.preventDefault();
+        syncAction("stop");
+        return;
+      }
+
+      const control = keyboardMap[event.key];
+      if (!control || event.repeat) {
         return;
       }
 
       event.preventDefault();
-      heldKeyAction = action === "stop" ? null : action;
-      sendAction(action).catch(showError);
+      syncAction(control);
     });
 
     window.addEventListener("keyup", (event) => {
-      const action = keyboardMap[event.key];
-      if (!action) {
+      const control = keyboardMap[event.key];
+      if (!control) {
         return;
       }
 
       event.preventDefault();
-      if (heldKeyAction === action || action === "stop") {
-        heldKeyAction = null;
-        sendAction("stop").catch(showError);
+      if (activeAction === control) {
+        syncAction("stop");
       }
     });
 
     window.addEventListener("blur", () => {
-      heldKeyAction = null;
-      sendAction("stop").catch(() => {});
+      syncAction("stop");
+    });
+
+    window.addEventListener("gamepadconnected", (event) => {
+      activeGamepadIndex = event.gamepad.index;
+      connectionLabel.textContent = `${event.gamepad.id} connected`;
+    });
+
+    window.addEventListener("gamepaddisconnected", (event) => {
+      if (activeGamepadIndex === event.gamepad.index) {
+        activeGamepadIndex = null;
+        syncAction("stop");
+      }
+    });
+
+    async function enterFullscreen(element) {
+      if (element.requestFullscreen) {
+        await element.requestFullscreen();
+        return;
+      }
+      if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen();
+        return;
+      }
+      if (element.webkitEnterFullscreen) {
+        element.webkitEnterFullscreen();
+        return;
+      }
+      throw new Error("Fullscreen is not supported in this browser");
+    }
+
+    async function exitFullscreen() {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+        return;
+      }
+      if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    }
+
+    document.getElementById("fullscreen").addEventListener("click", async () => {
+      try {
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          await exitFullscreen();
+          return;
+        }
+        await enterFullscreen(cameraFrame);
+      } catch (error) {
+        showError(error);
+      }
     });
 
     buttons.forEach(bindHold);
@@ -266,9 +419,13 @@
       .then((response) => response.json())
       .then((payload) => {
         setActiveAction(payload.action);
+        lastSentAction = payload.action;
+        updateActiveButtons(payload.action);
         connectionLabel.textContent = payload.gpio_mode === "rpi" ? "Connected to Pi GPIO" : "Connected in fake GPIO mode";
       })
       .catch(showError);
+
+    window.requestAnimationFrame(pollGamepad);
   </script>
 </body>
 </html>

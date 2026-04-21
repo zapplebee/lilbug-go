@@ -52,3 +52,5 @@ AprilTag metadata.
   landmarks and handoff hints.
 - future exploration scripts should record observations and confirm landmark rows
   as new tags are found.
+- The KB is host-side tooling only. The Pi rover service itself remains simple
+  and does not depend on SQLite, depth tooling, or heavyweight autonomy code.

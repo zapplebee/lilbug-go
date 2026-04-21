@@ -3,7 +3,8 @@
 Base URL:
 
 ```text
-http://192.168.1.179:8000
+Primary field URL on rover AP: http://192.168.4.1:8000
+Upstream/home-network URL: DHCP-assigned on wlan1
 ```
 
 ## Endpoints
@@ -88,20 +89,21 @@ image/jpeg
 
 - Movement is continuous until another move command or `POST /api/stop` is sent.
 - For scripted control, send a move command, wait briefly, then send stop.
-- The UI is press-and-hold, but API clients can issue direct commands.
+- The current UI is direct directional input: hold one direction, release to stop.
+- Keyboard and gamepad clients should also treat control as direct four-direction input, not throttle-plus-steering.
 
 Example movement pulse:
 
 ```bash
-curl -X POST http://192.168.1.179:8000/api/move/forward
+curl -X POST http://192.168.4.1:8000/api/move/forward
 sleep 0.4
-curl -X POST http://192.168.1.179:8000/api/stop
+curl -X POST http://192.168.4.1:8000/api/stop
 ```
 
 Example snapshot fetch:
 
 ```bash
-curl -o snapshot.jpg http://192.168.1.179:8000/snapshot.jpg
+curl -o snapshot.jpg http://192.168.4.1:8000/snapshot.jpg
 ```
 
 ## Current Motion Mapping
@@ -117,3 +119,4 @@ curl -o snapshot.jpg http://192.168.1.179:8000/snapshot.jpg
 - The camera is available as both a live MJPEG stream and single-frame JPEG snapshots.
 - There is no authentication on the current API.
 - The rover service is running on the Pi under systemd as `lilbug-rover.service`.
+- The most reliable driving URL in the field is the AP-side address `192.168.4.1`, not the upstream-side DHCP address.

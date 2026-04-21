@@ -42,7 +42,11 @@ STATE_BY_ACTION = {
     # Relay channel order was changed during wiring, so motion commands are
     # remapped to the states that produce the intended rover behavior.
     "forward": {"in1": 0, "in2": 1, "in3": 1, "in4": 0},
+    "forward_left": {"in1": 0, "in2": 1, "in3": 1, "in4": 1},
+    "forward_right": {"in1": 1, "in2": 1, "in3": 1, "in4": 0},
     "reverse": {"in1": 1, "in2": 0, "in3": 0, "in4": 1},
+    "reverse_left": {"in1": 1, "in2": 0, "in3": 1, "in4": 1},
+    "reverse_right": {"in1": 1, "in2": 1, "in3": 0, "in4": 1},
     "left": {"in1": 0, "in2": 1, "in3": 0, "in4": 1},
     "right": {"in1": 1, "in2": 0, "in3": 1, "in4": 0},
     "stop": {"in1": 1, "in2": 1, "in3": 1, "in4": 1},

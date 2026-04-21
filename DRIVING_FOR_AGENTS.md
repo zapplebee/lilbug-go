@@ -27,8 +27,13 @@ The only trustworthy feedback is the camera.
 ## Base URL
 
 ```text
-http://192.168.1.179:8000
+Preferred field URL: http://192.168.4.1:8000
+Upstream/home-network URL: DHCP-assigned on wlan1
 ```
+
+When connected to the rover AP, use `192.168.4.1` directly. Do not assume the
+hostname `lilbug` will resolve to the AP-side address once the upstream network
+is unavailable.
 
 ## API
 
@@ -41,6 +46,12 @@ http://192.168.1.179:8000
 | `/stream.mjpg` | GET | Live MJPEG |
 
 Authentication: none.
+
+The current browser and gamepad control model is direct direction input:
+
+- hold one direction to move
+- release to stop
+- use `POST /api/stop` explicitly in scripts
 
 ## Current Deployed Motion Mapping
 
@@ -153,7 +164,7 @@ the target is visible and reasonably centered.
 
 ## Fast Lane
 
-There is now a faster room-specific mode in `scripts/loop_between_tags.py`.
+There is an experimental faster room-specific mode in `scripts/loop_between_tags.py`.
 
 What changed:
 
@@ -168,9 +179,8 @@ Best use:
 - run with `--skip-acquire`
 - let the fast loop handle the steady-state shuttling between tags
 
-This is the right mode if you want the rover to look lively and zip between the
-two known bins. It is less robust from a completely arbitrary starting pose than
-the conservative closed-loop approach.
+This mode is less robust than the conservative closed-loop approach and should be
+treated as experimental room tuning, not the default operating model.
 
 ## Working Pulse Sizes In This Room
 
@@ -225,6 +235,9 @@ experiments. A successful one-lap run completed:
 The script still assumes the rover starts somewhere in the same room and that
 the tags are not physically blocked. It is closed-loop and vision-based, not
 blindly timed.
+
+Additional exploration later confirmed tags `3`, `4`, and `5`, but the two-tag
+loop validation itself is still specifically about the `0 <-> 1` route.
 
 ## Arrival Condition
 
